@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고양이 사료 영양 계산기</title>
+    <style>
+        body { font-family: sans-serif; max-width: 400px; margin: 20px auto; padding: 20px; }
+        .food-input { margin-bottom: 10px; }
+        select, input { padding: 5px; margin-right: 5px; }
+        button { width: 100%; padding: 10px; background-color: #ff9800; border: none; color: white; font-weight: bold; cursor: pointer; margin-top: 10px;}
+        .result-box { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <h2>사료 영양 계산기</h2>
+    
+    <div class="food-input">
+        <select id="foodSelect">
+            <option value="사료1">사료1</option>
+            <option value="사료2">사료2</option>
+            <option value="사료3">사료3</option>
+        </select>
+        <input type="number" id="foodAmount" placeholder="급여량(g)" min="0">
+        <button onclick="addFood()">추가하기</button>
+    </div>
+
+    <h3>섞은 사료 목록</h3>
+    <ul id="foodList"></ul>
+
+    <div class="result-box">
+        <h3>총 섭취 영양소</h3>
+        <p>수분: <span id="totalWater">0</span> g</p>
+        <p>단백질: <span id="totalProtein">0</span> g</p>
+        <p>지방: <span id="totalFat">0</span> g</p>
+    </div>
+
+    <script>
+        // 사료 데이터 (100g 당 영양소라고 임시로 가정)
+        const catFoods = {
+            "사료1": { "수분": 10, "단백질": 35, "지방": 15 },
+            "사료2": { "수분": 80, "단백질": 12, "지방": 3 },
+            "사료3": { "수분": 12, "단백질": 30, "지방": 12 }
+        };
+
+        let currentMix = {};
+
+        function addFood() {
+            const foodName = document.getElementById("foodSelect").value;
+            const amount = parseFloat(document.getElementById("foodAmount").value);
+
+            if (!amount || amount <= 0) {
+                alert("정확한 그램(g) 수를 입력해 줘!");
+                return;
+            }
+
+            // 이미 추가된 사료면 무게를 더하고, 아니면 새로 추가
+            if (currentMix[foodName]) {
+                currentMix[foodName] += amount;
+            } else {
+                currentMix[foodName] = amount;
+            }
+
+            updateUI();
+        }
+
+        function updateUI() {
+            const listUl = document.getElementById("foodList");
+            listUl.innerHTML = "";
+
+            let totalNutrition = { "수분": 0, "단백질": 0, "지방": 0 };
+
+            // 섞은 사료 목록과 영양소 총합 계산
+            for (const [foodName, amount] of Object.entries(currentMix)) {
+                const li = document.createElement("li");
+                li.textContent = `${foodName}: ${amount}g`;
+                listUl.appendChild(li);
+
+                const foodData = catFoods[foodName];
+                totalNutrition["수분"] += foodData["수분"] * (amount / 100);
+                totalNutrition["단백질"] += foodData["단백질"] * (amount / 100);
+                totalNutrition["지방"] += foodData["지방"] * (amount / 100);
+            }
+
+            // 계산된 결과를 화면에 표시 (소수점 둘째 자리까지)
+            document.getElementById("totalWater").textContent = totalNutrition["수분"].toFixed(2);
+            document.getElementById("totalProtein").textContent = totalNutrition["단백질"].toFixed(2);
+            document.getElementById("totalFat").textContent = totalNutrition["지방"].toFixed(2);
+        }
+    </script>
+</body>
+</html>
