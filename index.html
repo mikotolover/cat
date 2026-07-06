@@ -41,7 +41,8 @@
                 <th style="width: 80px;">Feed</th>
                 <th>TASTE(g)</th>
                 <th>CV(g)</th>
-                <th>HYDRO(g)</th>
+                <th>P/a(pk)</th>
+                <th>A/a(pk)</th>
                 <th>LEFT(g)</th>
             </tr>
         </thead>
@@ -80,29 +81,27 @@
         <thead>
             <tr>
                 <th>Food Name</th>
-                <th>Consumed Amount (g)</th>
+                <th>Consumed Amount</th>
             </tr>
         </thead>
         <tbody id="consumedFoodBody">
-            <!-- 섭취한 사료 데이터가 여기에 추가됨 -->
             <tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>
         </tbody>
     </table>
 
     <script>
-        // 사료별 1g당 영양소 (임의의 예시 데이터)
+        // 변환 완료된 영양소 성분표 (g 단위와 pk 단위 분리)
         const nutritionData = {
-            "TASTE": { kcal: 1.2, water: 0.7, solid: 0.3, protein: 0.12, fat: 0.05, phos: 1.5, calc: 1.2 },
-            "CV": { kcal: 0.9, water: 0.8, solid: 0.2, protein: 0.08, fat: 0.03, phos: 1.1, calc: 1.0 },
-            "HYDRO": { kcal: 1.1, water: 0.75, solid: 0.25, protein: 0.10, fat: 0.04, phos: 1.3, calc: 1.1 }
+            "TASTE": { unit: "g", kcal: 0.861, water: 0.805, solid: 0.195, protein: 0.095, fat: 0.008, phos: 1.36, calc: 1.6 },
+            "CV": { unit: "g", kcal: 0.15, water: 0.95, solid: 0.05, protein: 0.025, fat: 0.004, phos: 0.1, calc: 0.3 },
+            "P/a": { unit: "pk", kcal: 5.0, water: 8.5, solid: 1.5, protein: 0.55, fat: 0.17, phos: 10.0, calc: 5.0 },
+            "A/a": { unit: "pk", kcal: 6.0, water: 8.5, solid: 1.5, protein: 0.87, fat: 0.31, phos: 20.0, calc: 5.0 }
         };
 
-        // 초기 화면 설정 (첫 번째 행 자동 추가)
         window.onload = function() {
             addRow();
         };
 
-        // 행 추가 기능
         function addRow() {
             const tbody = document.getElementById("feedBody");
             const tr = document.createElement("tr");
@@ -114,24 +113,23 @@
                         <span class="row-num"></span>
                     </div>
                 </td>
-                <td><input type="number" class="taste" min="0"></td>
-                <td><input type="number" class="cv" min="0"></td>
-                <td><input type="number" class="hydro" min="0"></td>
-                <td><input type="number" class="left" min="0"></td>
+                <td><input type="number" class="taste" min="0" step="0.1"></td>
+                <td><input type="number" class="cv" min="0" step="0.1"></td>
+                <td><input type="number" class="pa" min="0" step="0.1"></td>
+                <td><input type="number" class="aa" min="0" step="0.1"></td>
+                <td><input type="number" class="left" min="0" step="0.1"></td>
             `;
             tbody.appendChild(tr);
             updateRowNumbers();
         }
 
-        // 행 삭제 기능
         function deleteRow(button) {
             const row = button.closest("tr");
             row.remove();
             updateRowNumbers();
-            calculate(); // 행 삭제 후 자동으로 다시 계산
+            calculate();
         }
 
-        // 행 번호 업데이트 기능
         function updateRowNumbers() {
             const rows = document.querySelectorAll("#feedBody tr");
             rows.forEach((row, index) => {
@@ -139,55 +137,50 @@
             });
         }
 
-        // 전체 지우기 (Clear) 기능
         function clearAll() {
             const inputs = document.querySelectorAll("#feedBody input[type='number']");
             inputs.forEach(input => {
                 input.value = "";
             });
-            calculate(); // 초기화 후 결과 0으로 갱신
+            calculate();
         }
 
-        // 총합 계산 기능
         function calculate() {
             let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
             
-            // 각 사료별 최종 섭취량을 저장할 객체
-            let totalConsumedFoods = { "TASTE": 0, "CV": 0, "HYDRO": 0 };
+            // 각 사료별 최종 섭취량을 저장
+            let totalConsumedFoods = { "TASTE": 0, "CV": 0, "P/a": 0, "A/a": 0 };
             
             const rows = document.querySelectorAll("#feedBody tr");
             let hasAnyInput = false;
 
-            // 각 행(다회차 급여)별로 순회하면서 계산
             rows.forEach(row => {
                 const taste = parseFloat(row.querySelector(".taste").value) || 0;
                 const cv = parseFloat(row.querySelector(".cv").value) || 0;
-                const hydro = parseFloat(row.querySelector(".hydro").value) || 0;
+                const pa = parseFloat(row.querySelector(".pa").value) || 0;
+                const aa = parseFloat(row.querySelector(".aa").value) || 0;
                 const left = parseFloat(row.querySelector(".left").value) || 0;
 
-                const totalGiven = taste + cv + hydro;
+                // 총 급여량을 g(그램) 단위로 환산 (P/a와 A/a는 1포당 10g)
+                const totalGiven = taste + cv + (pa * 10) + (aa * 10);
 
-                // 급여량이 있을 때만 계산
                 if (totalGiven > 0) {
                     hasAnyInput = true;
-                    let ratio = 1; // 기본적으로 남김 없이 다 먹었다고 가정
+                    let ratio = 1; 
                     
                     if (left >= totalGiven) {
-                        ratio = 0; // 준 것보다 많이 남기거나 다 남긴 경우
+                        ratio = 0; 
                     } else if (left > 0) {
-                        ratio = (totalGiven - left) / totalGiven; // 남긴 양만큼 비례해서 섭취 비율 계산
+                        ratio = (totalGiven - left) / totalGiven; 
                     }
 
-                    // 영양소와 사료 섭취량을 더해주는 내부 함수
                     const addNutrition = (foodKey, amount) => {
                         if (amount > 0) {
                             const nut = nutritionData[foodKey];
-                            const actualAmount = amount * ratio; // 실제 섭취한 무게
+                            const actualAmount = amount * ratio; 
                             
-                            // 사료별 섭취량 누적
                             totalConsumedFoods[foodKey] += actualAmount;
                             
-                            // 영양소 누적
                             total.kcal += actualAmount * nut.kcal;
                             total.water += actualAmount * nut.water;
                             total.solid += actualAmount * nut.solid;
@@ -200,11 +193,12 @@
 
                     addNutrition("TASTE", taste);
                     addNutrition("CV", cv);
-                    addNutrition("HYDRO", hydro);
+                    addNutrition("P/a", pa);
+                    addNutrition("A/a", aa);
                 }
             });
 
-            // 계산 결과를 Summary 테이블에 반영 (소수점 둘째 자리까지)
+            // Summary 테이블 반영
             document.getElementById("res-kcal").innerText = total.kcal.toFixed(2);
             document.getElementById("res-water").innerText = total.water.toFixed(2);
             document.getElementById("res-solid").innerText = total.solid.toFixed(2);
@@ -213,18 +207,18 @@
             document.getElementById("res-phos").innerText = total.phos.toFixed(2);
             document.getElementById("res-calc").innerText = total.calc.toFixed(2);
 
-            // 섭취한 사료 총량 테이블 업데이트
+            // 섭취한 사료 총량 테이블 단위 포함하여 업데이트
             const consumedBody = document.getElementById("consumedFoodBody");
-            consumedBody.innerHTML = ""; // 기존 내용 초기화
+            consumedBody.innerHTML = ""; 
 
             if (!hasAnyInput) {
-                consumedBody.innerHTML = `<tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>`;
+                consumedBody.innerHTML = '<tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>';
             } else {
                 for (const [foodName, amount] of Object.entries(totalConsumedFoods)) {
-                    // 0g 초과로 먹은 사료만 표에 나타나도록 설정
                     if (amount > 0) {
                         const tr = document.createElement("tr");
-                        tr.innerHTML = `<td><strong>${foodName}</strong></td><td>${amount.toFixed(2)}</td>`;
+                        const unit = nutritionData[foodName].unit;
+                        tr.innerHTML = '<td><strong>' + foodName + '</strong></td><td>' + amount.toFixed(2) + ' ' + unit + '</td>';
                         consumedBody.appendChild(tr);
                     }
                 }
