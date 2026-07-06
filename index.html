@@ -3,90 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>고양이 사료 영양 계산기</title>
+    <title>고양이 다회차 급여 계산기</title>
     <style>
-        body { font-family: sans-serif; max-width: 400px; margin: 20px auto; padding: 20px; }
-        .food-input { margin-bottom: 10px; }
-        select, input { padding: 5px; margin-right: 5px; }
-        button { width: 100%; padding: 10px; background-color: #ff9800; border: none; color: white; font-weight: bold; cursor: pointer; margin-top: 10px;}
-        .result-box { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; }
+        body { font-family: sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f4f4f4; }
+        input[type="number"] { width: 60px; padding: 4px; text-align: right; }
+        button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
+        .summary-table th, .summary-table td { border: 1px solid #aaa; }
     </style>
 </head>
 <body>
 
-    <h2>사료 영양 계산기</h2>
-    
-    <div class="food-input">
-        <select id="foodSelect">
-            <option value="사료1">사료1</option>
-            <option value="사료2">사료2</option>
-            <option value="사료3">사료3</option>
-        </select>
-        <input type="number" id="foodAmount" placeholder="급여량(g)" min="0">
-        <button onclick="addFood()">추가하기</button>
-    </div>
+    <h2>급여 기록</h2>
+    <table id="feedTable">
+        <thead>
+            <tr>
+                <th>Feed</th>
+                <th>TASTE(g)</th>
+                <th>CV(g)</th>
+                <th>HYDRO(g)</th>
+            </tr>
+        </thead>
+        <tbody id="feedBody">
+            <tr>
+                <td>1</td>
+                <td><input type="number" class="taste" min="0"></td>
+                <td><input type="number" class="cv" min="0"></td>
+                <td><input type="number" class="hydro" min="0"></td>
+            </tr>
+        </tbody>
+    </table>
 
-    <h3>섞은 사료 목록</h3>
-    <ul id="foodList"></ul>
+    <button onclick="addRow()">행 추가</button>
+    <button onclick="calculate()">계산</button>
 
-    <div class="result-box">
-        <h3>총 섭취 영양소</h3>
-        <p>수분: <span id="totalWater">0</span> g</p>
-        <p>단백질: <span id="totalProtein">0</span> g</p>
-        <p>지방: <span id="totalFat">0</span> g</p>
-    </div>
+    <h2>Summary</h2>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Calories (kcal)</td><td id="res-kcal">0.00</td></tr>
+            <tr><td>Water (ml)</td><td id="res-water">0.00</td></tr>
+            <tr><td>Solid (g)</td><td id="res-solid">0.00</td></tr>
+            <tr><td>Protein (g)</td><td id="res-protein">0.00</td></tr>
+            <tr><td>Fat (g)</td><td id="res-fat">0.00</td></tr>
+            <tr><td>Phosphorus (mg)</td><td id="res-phos">0.00</td></tr>
+            <tr><td>Calcium (mg)</td><td id="res-calc">0.00</td></tr>
+        </tbody>
+    </table>
 
     <script>
-        // 사료 데이터 (100g 당 영양소라고 임시로 가정)
-        const catFoods = {
-            "사료1": { "수분": 10, "단백질": 35, "지방": 15 },
-            "사료2": { "수분": 80, "단백질": 12, "지방": 3 },
-            "사료3": { "수분": 12, "단백질": 30, "지방": 12 }
+        // 사료별 1g당 영양소 (임의의 예시 데이터이므로 나중에 실제 값으로 수정해!)
+        const nutritionData = {
+            "TASTE": { kcal: 1.2, water: 0.7, solid: 0.3, protein: 0.12, fat: 0.05, phos: 1.5, calc: 1.2 },
+            "CV": { kcal: 0.9, water: 0.8, solid: 0.2, protein: 0.08, fat: 0.03, phos: 1.1, calc: 1.0 },
+            "HYDRO": { kcal: 1.1, water: 0.75, solid: 0.25, protein: 0.10, fat: 0.04, phos: 1.3, calc: 1.1 }
         };
 
-        let currentMix = {};
+        let rowCount = 1;
 
-        function addFood() {
-            const foodName = document.getElementById("foodSelect").value;
-            const amount = parseFloat(document.getElementById("foodAmount").value);
-
-            if (!amount || amount <= 0) {
-                alert("정확한 그램(g) 수를 입력해 줘!");
-                return;
-            }
-
-            // 이미 추가된 사료면 무게를 더하고, 아니면 새로 추가
-            if (currentMix[foodName]) {
-                currentMix[foodName] += amount;
-            } else {
-                currentMix[foodName] = amount;
-            }
-
-            updateUI();
+        // 행 추가 기능
+        function addRow() {
+            rowCount++;
+            const tbody = document.getElementById("feedBody");
+            const tr = document.createElement("tr");
+            
+            tr.innerHTML = `
+                <td>${rowCount}</td>
+                <td><input type="number" class="taste" min="0"></td>
+                <td><input type="number" class="cv" min="0"></td>
+                <td><input type="number" class="hydro" min="0"></td>
+            `;
+            tbody.appendChild(tr);
         }
 
-        function updateUI() {
-            const listUl = document.getElementById("foodList");
-            listUl.innerHTML = "";
+        // 총합 계산 기능
+        function calculate() {
+            let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
 
-            let totalNutrition = { "수분": 0, "단백질": 0, "지방": 0 };
+            // 각 입력칸의 클래스 이름과 매칭되는 데이터 키
+            const foods = [
+                { className: "taste", dataKey: "TASTE" },
+                { className: "cv", dataKey: "CV" },
+                { className: "hydro", dataKey: "HYDRO" }
+            ];
 
-            // 섞은 사료 목록과 영양소 총합 계산
-            for (const [foodName, amount] of Object.entries(currentMix)) {
-                const li = document.createElement("li");
-                li.textContent = `${foodName}: ${amount}g`;
-                listUl.appendChild(li);
+            // 모든 항목을 순회하며 합산
+            foods.forEach(food => {
+                const inputs = document.querySelectorAll("." + food.className);
+                let sum = 0;
+                
+                inputs.forEach(input => {
+                    if (input.value) {
+                        sum += parseFloat(input.value);
+                    }
+                });
 
-                const foodData = catFoods[foodName];
-                totalNutrition["수분"] += foodData["수분"] * (amount / 100);
-                totalNutrition["단백질"] += foodData["단백질"] * (amount / 100);
-                totalNutrition["지방"] += foodData["지방"] * (amount / 100);
-            }
+                const nut = nutritionData[food.dataKey];
+                total.kcal += sum * nut.kcal;
+                total.water += sum * nut.water;
+                total.solid += sum * nut.solid;
+                total.protein += sum * nut.protein;
+                total.fat += sum * nut.fat;
+                total.phos += sum * nut.phos;
+                total.calc += sum * nut.calc;
+            });
 
-            // 계산된 결과를 화면에 표시 (소수점 둘째 자리까지)
-            document.getElementById("totalWater").textContent = totalNutrition["수분"].toFixed(2);
-            document.getElementById("totalProtein").textContent = totalNutrition["단백질"].toFixed(2);
-            document.getElementById("totalFat").textContent = totalNutrition["지방"].toFixed(2);
+            // 계산 결과를 Summary 테이블에 반영 (소수점 둘째 자리까지)
+            document.getElementById("res-kcal").innerText = total.kcal.toFixed(2);
+            document.getElementById("res-water").innerText = total.water.toFixed(2);
+            document.getElementById("res-solid").innerText = total.solid.toFixed(2);
+            document.getElementById("res-protein").innerText = total.protein.toFixed(2);
+            document.getElementById("res-fat").innerText = total.fat.toFixed(2);
+            document.getElementById("res-phos").innerText = total.phos.toFixed(2);
+            document.getElementById("res-calc").innerText = total.calc.toFixed(2);
         }
     </script>
 </body>
