@@ -13,6 +13,7 @@
         button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
         .delete-btn { color: red; font-weight: bold; background: none; border: none; cursor: pointer; }
         .summary-table th, .summary-table td { border: 1px solid #aaa; }
+        .dynamic-food-row { background-color: #fcfcfc; }
     </style>
 </head>
 <body>
@@ -46,7 +47,7 @@
                 <th>Value</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="summaryBody">
             <tr><td>Calories (kcal)</td><td id="res-kcal">0.00</td></tr>
             <tr><td>Water (ml)</td><td id="res-water">0.00</td></tr>
             <tr><td>Solid (g)</td><td id="res-solid">0.00</td></tr>
@@ -115,6 +116,10 @@
         // 총합 계산 기능
         function calculate() {
             let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
+            
+            // 각 사료별 최종 섭취량을 저장할 객체
+            let totalConsumedFoods = { "TASTE": 0, "CV": 0, "HYDRO": 0 };
+            
             const rows = document.querySelectorAll("#feedBody tr");
 
             // 각 행(다회차 급여)별로 순회하면서 계산
@@ -136,12 +141,16 @@
                         ratio = (totalGiven - left) / totalGiven; // 남긴 양만큼 비례해서 섭취 비율 계산
                     }
 
-                    // 영양소를 더해주는 내부 함수
+                    // 영양소와 사료 섭취량을 더해주는 내부 함수
                     const addNutrition = (foodKey, amount) => {
                         if (amount > 0) {
                             const nut = nutritionData[foodKey];
                             const actualAmount = amount * ratio; // 실제 섭취한 무게
                             
+                            // 사료별 섭취량 누적
+                            totalConsumedFoods[foodKey] += actualAmount;
+                            
+                            // 영양소 누적
                             total.kcal += actualAmount * nut.kcal;
                             total.water += actualAmount * nut.water;
                             total.solid += actualAmount * nut.solid;
@@ -166,6 +175,21 @@
             document.getElementById("res-fat").innerText = total.fat.toFixed(2);
             document.getElementById("res-phos").innerText = total.phos.toFixed(2);
             document.getElementById("res-calc").innerText = total.calc.toFixed(2);
+
+            // 이전에 동적으로 추가된 사료 섭취량 행 삭제
+            document.querySelectorAll(".dynamic-food-row").forEach(row => row.remove());
+
+            // 새로 계산된 사료별 섭취량을 Summary 표 맨 밑에 동적으로 추가
+            const summaryBody = document.getElementById("summaryBody");
+            for (const [foodName, amount] of Object.entries(totalConsumedFoods)) {
+                // 0g 초과로 먹은 사료만 표에 나타나도록 설정
+                if (amount > 0) {
+                    const tr = document.createElement("tr");
+                    tr.className = "dynamic-food-row";
+                    tr.innerHTML = "<td>" + foodName + " (g)</td><td>" + amount.toFixed(2) + "</td>";
+                    summaryBody.appendChild(tr);
+                }
+            }
         }
     </script>
 </body>
