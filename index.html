@@ -12,6 +12,7 @@
         .header-wrap h2 { margin: 0; border: none; padding: 0; }
         .date-input { padding: 5px; font-size: 16px; font-family: sans-serif; border: 1px solid #ccc; border-radius: 4px; }
         
+        h3 { margin-top: 25px; margin-bottom: 10px; color: #444; }
         h2 { margin-top: 30px; border-bottom: 2px solid #333; padding-bottom: 5px; }
         
         table { border-collapse: collapse; width: 100%; margin-bottom: 20px; white-space: nowrap; }
@@ -21,7 +22,7 @@
         input[type="number"] { width: 55px; padding: 6px; text-align: right; border: 1px solid #ccc; border-radius: 4px; }
         input[type="number"]:focus { outline: none; border-color: #ff9800; }
         
-        .btn-group { margin-bottom: 20px; }
+        .btn-group { margin-bottom: 20px; margin-top: 5px; }
         .btn-group button { padding: 10px 18px; margin-right: 10px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
         .btn-add { background-color: #4CAF50; color: white; }
         .btn-calc { background-color: #2196F3; color: white; }
@@ -29,7 +30,7 @@
         .btn-download { background-color: #9c27b0; color: white; }
         
         .row-num-cell { display: flex; align-items: center; justify-content: flex-start; gap: 8px; border: none; padding: 5px; }
-        .row-name { width: 60px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; color: #333; }
+        .row-name { width: 75px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; color: #333; }
         .row-name:focus { outline: none; border-color: #2196F3; }
         
         .delete-btn { 
@@ -40,6 +41,7 @@
         .delete-btn:hover { background-color: #ffcdd2; }
         
         .table-responsive { overflow-x: auto; }
+        .action-bars { display: flex; gap: 10px; margin-top: 30px; margin-bottom: 30px; border-top: 2px dashed #ccc; padding-top: 20px;}
     </style>
 </head>
 <body>
@@ -49,15 +51,14 @@
         <input type="date" id="recordDate" class="date-input">
     </div>
     
+    <h3>1. 혼합 급여 기록</h3>
     <div class="table-responsive">
         <table id="feedTable">
             <thead>
                 <tr>
-                    <th style="width: 120px;">Feed Name</th>
+                    <th style="width: 140px;">Feed Name</th>
                     <th>TASTE(g)</th>
                     <th>CV(g)</th>
-                    <th>P/a(pk)</th>
-                    <th>A/a(pk)</th>
                     <th>WATER(g)</th>
                     <th>RC15+(g)</th>
                     <th>PUR(pk)</th>
@@ -75,10 +76,32 @@
                 </tbody>
         </table>
     </div>
-
     <div class="btn-group">
-        <button class="btn-add" onclick="addRow()">+ 행 추가</button>
-        <button class="btn-calc" onclick="calculate()">계산하기</button>
+        <button class="btn-add" onclick="addRow()">+ 혼합 급여 추가</button>
+    </div>
+
+    <h3>2. 단독 급여 기록 (A/a, P/a)</h3>
+    <div class="table-responsive">
+        <table id="singleFeedTable">
+            <thead>
+                <tr>
+                    <th style="width: 140px;">Feed Name</th>
+                    <th>A/a(pk)</th>
+                    <th>P/a(pk)</th>
+                    <th>WATER(g)</th>
+                    <th>LEFT(g)</th>
+                </tr>
+            </thead>
+            <tbody id="singleFeedBody">
+                </tbody>
+        </table>
+    </div>
+    <div class="btn-group">
+        <button class="btn-add" onclick="addSingleRow()" style="background-color: #ff9800;">+ 단독 급여 추가</button>
+    </div>
+
+    <div class="action-bars">
+        <button class="btn-calc" onclick="calculate()">전체 계산하기</button>
         <button class="btn-clear" onclick="clearAll()">전체 지우기</button>
         <button class="btn-download" onclick="downloadImage()">이미지 다운로드</button>
     </div>
@@ -142,11 +165,12 @@
         };
 
         let feedCount = 0;
+        let singleFeedCount = 0;
 
         window.onload = function() {
             addRow();
+            addSingleRow();
             
-            // 오늘 날짜를 기본값으로 세팅
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -154,6 +178,7 @@
             document.getElementById("recordDate").value = `${year}-${month}-${day}`;
         };
 
+        // 혼합 급여 행 추가
         function addRow() {
             feedCount++;
             const tbody = document.getElementById("feedBody");
@@ -163,13 +188,11 @@
                 <td>
                     <div class="row-num-cell">
                         <button class="delete-btn" onclick="deleteRow(this)" title="삭제">&times;</button>
-                        <input type="text" class="row-name" value="${feedCount}회차">
+                        <input type="text" class="row-name" value="혼합 ${feedCount}회">
                     </div>
                 </td>
                 <td><input type="number" class="taste" min="0" step="0.1"></td>
                 <td><input type="number" class="cv" min="0" step="0.1"></td>
-                <td><input type="number" class="pa" min="0" step="0.1"></td>
-                <td><input type="number" class="aa" min="0" step="0.1"></td>
                 <td><input type="number" class="water" min="0" step="0.1"></td>
                 <td><input type="number" class="rc15" min="0" step="0.1"></td>
                 <td><input type="number" class="pur" min="0" step="0.1"></td>
@@ -185,6 +208,27 @@
             tbody.appendChild(tr);
         }
 
+        // 단독 급여 행 추가
+        function addSingleRow() {
+            singleFeedCount++;
+            const tbody = document.getElementById("singleFeedBody");
+            const tr = document.createElement("tr");
+            
+            tr.innerHTML = `
+                <td>
+                    <div class="row-num-cell">
+                        <button class="delete-btn" onclick="deleteRow(this)" title="삭제">&times;</button>
+                        <input type="text" class="row-name" value="단독 ${singleFeedCount}회">
+                    </div>
+                </td>
+                <td><input type="number" class="aa" min="0" step="0.1"></td>
+                <td><input type="number" class="pa" min="0" step="0.1"></td>
+                <td><input type="number" class="water" min="0" step="0.1"></td>
+                <td><input type="number" class="left" min="0" step="0.1"></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
         function deleteRow(button) {
             const row = button.closest("tr");
             row.remove();
@@ -192,27 +236,27 @@
         }
 
         function clearAll() {
-            const inputs = document.querySelectorAll("#feedBody input[type='number']");
+            const inputs = document.querySelectorAll("tbody input[type='number']");
             inputs.forEach(input => {
                 input.value = "";
             });
             calculate();
         }
 
-        // 이미지 다운로드 기능 (깔끔한 캡처를 위해 수정됨)
         function downloadImage() {
             const dateStr = document.getElementById("recordDate").value || "급여기록";
             const fileName = dateStr + ".png";
             
             html2canvas(document.body, { 
                 scrollY: -window.scrollY,
-                scale: 2, // 이미지를 2배 선명하게 캡처
+                scale: 2,
                 onclone: function (clonedDoc) {
-                    // 1. 캡처할 때 보기 안 좋은 메인 버튼들 숨기기
-                    const btnGroup = clonedDoc.querySelector('.btn-group');
-                    if(btnGroup) btnGroup.style.display = 'none';
+                    const btnGroups = clonedDoc.querySelectorAll('.btn-group');
+                    btnGroups.forEach(bg => bg.style.display = 'none');
+                    
+                    const actionBars = clonedDoc.querySelector('.action-bars');
+                    if(actionBars) actionBars.style.display = 'none';
 
-                    // 2. 달력 입력칸(date)을 일반 텍스트로 예쁘게 변환
                     const dateInput = clonedDoc.getElementById("recordDate");
                     if (dateInput) {
                         const span = clonedDoc.createElement("span");
@@ -223,19 +267,18 @@
                         dateInput.parentNode.replaceChild(span, dateInput);
                     }
 
-                    // 3. 표 안의 모든 입력칸(이름, 숫자)을 일반 텍스트로 변환
-                    const inputs = clonedDoc.querySelectorAll("#feedBody input");
+                    // 모든 표 안의 입력칸들을 텍스트로 변환 (혼합, 단독 모두 적용)
+                    const inputs = clonedDoc.querySelectorAll("tbody input");
                     inputs.forEach(input => {
                         const span = clonedDoc.createElement("span");
                         span.innerText = input.value;
                         span.style.display = "inline-block";
                         
-                        // 기존 칸과 똑같은 크기 및 정렬 유지
                         if (input.type === "number") {
                             span.style.width = "55px";
                             span.style.textAlign = "right";
                         } else {
-                            span.style.width = "60px";
+                            span.style.width = "75px";
                             span.style.textAlign = "center";
                             span.style.fontWeight = "bold";
                         }
@@ -243,7 +286,6 @@
                         input.parentNode.replaceChild(span, input);
                     });
 
-                    // 4. 표 안의 X(삭제) 버튼 숨기기
                     const deleteBtns = clonedDoc.querySelectorAll(".delete-btn");
                     deleteBtns.forEach(btn => btn.style.display = "none");
                 }
@@ -258,17 +300,17 @@
         function calculate() {
             let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
             
-            const rows = document.querySelectorAll("#feedBody tr");
+            const mixRows = document.querySelectorAll("#feedBody tr");
+            const singleRows = document.querySelectorAll("#singleFeedBody tr");
             const perFeedBody = document.getElementById("perFeedBody");
             perFeedBody.innerHTML = ""; 
             
             let hasAnyInput = false;
 
-            rows.forEach((row) => {
+            // 1. 혼합 급여 표 계산 로직
+            mixRows.forEach((row) => {
                 const taste = parseFloat(row.querySelector(".taste").value) || 0;
                 const cv = parseFloat(row.querySelector(".cv").value) || 0;
-                const pa = parseFloat(row.querySelector(".pa").value) || 0;
-                const aa = parseFloat(row.querySelector(".aa").value) || 0;
                 const water = parseFloat(row.querySelector(".water").value) || 0;
                 const rc15 = parseFloat(row.querySelector(".rc15").value) || 0;
                 const pur = parseFloat(row.querySelector(".pur").value) || 0;
@@ -282,20 +324,13 @@
                 const left = parseFloat(row.querySelector(".left").value) || 0;
 
                 const totalGiven = taste + cv + water + rc15 + hydro + dige + 
-                                  (pa * 10) + (aa * 10) + (pur * 14) + (h * 12) + 
-                                  (pc * 14) + (pt * 14) + (easy * 14) + (leo * 40);
+                                  (pur * 14) + (h * 12) + (pc * 14) + (pt * 14) + 
+                                  (easy * 14) + (leo * 40);
                 
-                let rowNutrients = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
-
                 if (totalGiven > 0) {
                     hasAnyInput = true;
-                    let ratio = 1; 
-                    
-                    if (left >= totalGiven) {
-                        ratio = 0; 
-                    } else if (left > 0) {
-                        ratio = (totalGiven - left) / totalGiven; 
-                    }
+                    let ratio = left >= totalGiven ? 0 : (totalGiven - left) / totalGiven; 
+                    let rowNutrients = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
 
                     const addNutrition = (foodKey, amount) => {
                         if (amount > 0) {
@@ -322,8 +357,6 @@
 
                     addNutrition("TASTE", taste);
                     addNutrition("CV", cv);
-                    addNutrition("P/a", pa);
-                    addNutrition("A/a", aa);
                     addNutrition("WATER", water);
                     addNutrition("RC15+", rc15);
                     addNutrition("PUR", pur);
@@ -335,17 +368,52 @@
                     addNutrition("EASY", easy);
                     addNutrition("LEO", leo);
 
-                    const rowName = row.querySelector(".row-name").value || "이름 없음";
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = '<td><strong>' + rowName + '</strong></td>' +
-                                   '<td>' + rowNutrients.kcal.toFixed(2) + '</td>' +
-                                   '<td>' + rowNutrients.water.toFixed(2) + '</td>' +
-                                   '<td>' + rowNutrients.solid.toFixed(2) + '</td>' +
-                                   '<td>' + rowNutrients.protein.toFixed(2) + '</td>' +
-                                   '<td>' + rowNutrients.fat.toFixed(2) + '</td>' +
-                                   '<td>' + rowNutrients.phos.toFixed(2) + '</td>' +
-                                   '<td>' + rowNutrients.calc.toFixed(2) + '</td>';
-                    perFeedBody.appendChild(tr);
+                    appendSummaryRow(perFeedBody, row.querySelector(".row-name").value, rowNutrients);
+                }
+            });
+
+            // 2. 단독 급여 표 계산 로직
+            singleRows.forEach((row) => {
+                const aa = parseFloat(row.querySelector(".aa").value) || 0;
+                const pa = parseFloat(row.querySelector(".pa").value) || 0;
+                const water = parseFloat(row.querySelector(".water").value) || 0;
+                const left = parseFloat(row.querySelector(".left").value) || 0;
+
+                const totalGiven = (aa * 10) + (pa * 10) + water;
+                
+                if (totalGiven > 0) {
+                    hasAnyInput = true;
+                    let ratio = left >= totalGiven ? 0 : (totalGiven - left) / totalGiven; 
+                    let rowNutrients = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
+
+                    const addNutrition = (foodKey, amount) => {
+                        if (amount > 0) {
+                            const nut = nutritionData[foodKey];
+                            const actualAmount = amount * ratio; 
+                            
+                            rowNutrients.kcal += actualAmount * nut.kcal;
+                            rowNutrients.water += actualAmount * nut.water;
+                            rowNutrients.solid += actualAmount * nut.solid;
+                            rowNutrients.protein += actualAmount * nut.protein;
+                            rowNutrients.fat += actualAmount * nut.fat;
+                            rowNutrients.phos += actualAmount * nut.phos;
+                            rowNutrients.calc += actualAmount * nut.calc;
+
+                            total.kcal += actualAmount * nut.kcal;
+                            total.water += actualAmount * nut.water;
+                            total.solid += actualAmount * nut.solid;
+                            total.protein += actualAmount * nut.protein;
+                            total.fat += actualAmount * nut.fat;
+                            total.phos += actualAmount * nut.phos;
+                            total.calc += actualAmount * nut.calc;
+                        }
+                    };
+
+                    addNutrition("A/a", aa);
+                    addNutrition("P/a", pa);
+                    addNutrition("WATER", water);
+
+                    appendSummaryRow(perFeedBody, row.querySelector(".row-name").value, rowNutrients);
                 }
             });
 
@@ -360,6 +428,21 @@
             document.getElementById("res-fat").innerText = total.fat.toFixed(2);
             document.getElementById("res-phos").innerText = total.phos.toFixed(2);
             document.getElementById("res-calc").innerText = total.calc.toFixed(2);
+        }
+
+        // Summary 표에 행을 추가하는 공통 함수
+        function appendSummaryRow(tbody, name, nutrients) {
+            const rowName = name || "이름 없음";
+            const tr = document.createElement("tr");
+            tr.innerHTML = '<td><strong>' + rowName + '</strong></td>' +
+                           '<td>' + nutrients.kcal.toFixed(2) + '</td>' +
+                           '<td>' + nutrients.water.toFixed(2) + '</td>' +
+                           '<td>' + nutrients.solid.toFixed(2) + '</td>' +
+                           '<td>' + nutrients.protein.toFixed(2) + '</td>' +
+                           '<td>' + nutrients.fat.toFixed(2) + '</td>' +
+                           '<td>' + nutrients.phos.toFixed(2) + '</td>' +
+                           '<td>' + nutrients.calc.toFixed(2) + '</td>';
+            tbody.appendChild(tr);
         }
     </script>
 </body>
