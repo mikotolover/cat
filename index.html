@@ -21,8 +21,11 @@
         .btn-calc { background-color: #2196F3; color: white; }
         .btn-clear { background-color: #9e9e9e; color: white; }
         
-        .row-num-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 10px; }
-        .row-num { font-weight: bold; color: #555; width: 20px; }
+        /* 이름 입력칸 UI 스타일링 */
+        .row-num-cell { display: flex; align-items: center; justify-content: flex-start; gap: 8px; border: none; padding: 5px; }
+        .row-name { width: 60px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; color: #333; }
+        .row-name:focus { outline: none; border-color: #2196F3; }
+        
         .delete-btn { 
             background-color: #ffebee; color: #d32f2f; border: none; border-radius: 4px; 
             width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; 
@@ -41,7 +44,7 @@
         <table id="feedTable">
             <thead>
                 <tr>
-                    <th style="width: 80px;">Feed</th>
+                    <th style="width: 120px;">Feed Name</th>
                     <th>TASTE(g)</th>
                     <th>CV(g)</th>
                     <th>P/a(pk)</th>
@@ -75,7 +78,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Feed</th>
+                    <th>Feed Name</th>
                     <th>Kcal</th>
                     <th>Water(ml)</th>
                     <th>Solid(g)</th>
@@ -110,21 +113,8 @@
         </tbody>
     </table>
 
-    <h2>사료별 총 섭취량</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Food Name</th>
-                <th>Consumed Amount</th>
-            </tr>
-        </thead>
-        <tbody id="consumedFoodBody">
-            <tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>
-        </tbody>
-    </table>
-
     <script>
-        // 변환 완료된 영양소 성분표 (조공 이지는 14g으로 임시 산정)
+        // 영양소 데이터 모음
         const nutritionData = {
             "TASTE": { unit: "g", kcal: 0.861, water: 0.805, solid: 0.195, protein: 0.095, fat: 0.008, phos: 1.36, calc: 1.6 },
             "CV": { unit: "g", kcal: 0.15, water: 0.95, solid: 0.05, protein: 0.025, fat: 0.004, phos: 0.1, calc: 0.3 },
@@ -138,23 +128,27 @@
             "DIGE": { unit: "g", kcal: 1.24, water: 0.79, solid: 0.21, protein: 0.075, fat: 0.015, phos: 1.8, calc: 0 },
             "PC": { unit: "pk", kcal: 7.7, water: 12.18, solid: 1.82, protein: 1.12, fat: 0.028, phos: 5.6, calc: 0.42 },
             "PT": { unit: "pk", kcal: 7.14, water: 12.32, solid: 1.68, protein: 1.19, fat: 0.014, phos: 7.0, calc: 0.42 },
-            "EASY": { unit: "pk", kcal: 9.0, water: 12.46, solid: 1.54, protein: 0.98, fat: 0.014, phos: 9.8, calc: 1.4 }, // 14g assumed
+            "EASY": { unit: "pk", kcal: 9.0, water: 12.46, solid: 1.54, protein: 0.98, fat: 0.014, phos: 9.8, calc: 1.4 }, 
             "LEO": { unit: "pk", kcal: 12.48, water: 36.8, solid: 3.2, protein: 2.2, fat: 0.24, phos: 4.0, calc: 4.0 }
         };
+
+        let feedCount = 0;
 
         window.onload = function() {
             addRow();
         };
 
         function addRow() {
+            feedCount++;
             const tbody = document.getElementById("feedBody");
             const tr = document.createElement("tr");
             
+            // 입력칸으로 변경된 이름 부분 (value 값으로 기본 이름 설정)
             tr.innerHTML = `
                 <td>
                     <div class="row-num-cell">
                         <button class="delete-btn" onclick="deleteRow(this)" title="삭제">&times;</button>
-                        <span class="row-num"></span>
+                        <input type="text" class="row-name" value="${feedCount}회차">
                     </div>
                 </td>
                 <td><input type="number" class="taste" min="0" step="0.1"></td>
@@ -174,21 +168,12 @@
                 <td><input type="number" class="left" min="0" step="0.1"></td>
             `;
             tbody.appendChild(tr);
-            updateRowNumbers();
         }
 
         function deleteRow(button) {
             const row = button.closest("tr");
             row.remove();
-            updateRowNumbers();
             calculate();
-        }
-
-        function updateRowNumbers() {
-            const rows = document.querySelectorAll("#feedBody tr");
-            rows.forEach((row, index) => {
-                row.querySelector(".row-num").innerText = index + 1;
-            });
         }
 
         function clearAll() {
@@ -201,11 +186,6 @@
 
         function calculate() {
             let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
-            let totalConsumedFoods = { 
-                "TASTE": 0, "CV": 0, "P/a": 0, "A/a": 0, "WATER": 0, 
-                "RC15+": 0, "PUR": 0, "H": 0, "HYDRO": 0, "DIGE": 0, 
-                "PC": 0, "PT": 0, "EASY": 0, "LEO": 0 
-            };
             
             const rows = document.querySelectorAll("#feedBody tr");
             const perFeedBody = document.getElementById("perFeedBody");
@@ -213,7 +193,7 @@
             
             let hasAnyInput = false;
 
-            rows.forEach((row, index) => {
+            rows.forEach((row) => {
                 const taste = parseFloat(row.querySelector(".taste").value) || 0;
                 const cv = parseFloat(row.querySelector(".cv").value) || 0;
                 const pa = parseFloat(row.querySelector(".pa").value) || 0;
@@ -230,7 +210,6 @@
                 const leo = parseFloat(row.querySelector(".leo").value) || 0;
                 const left = parseFloat(row.querySelector(".left").value) || 0;
 
-                // 패키지 단위(pk) 사료들의 무게를 g 단위로 변환해서 총합 계산
                 const totalGiven = taste + cv + water + rc15 + hydro + dige + 
                                   (pa * 10) + (aa * 10) + (pur * 14) + (h * 12) + 
                                   (pc * 14) + (pt * 14) + (easy * 14) + (leo * 40);
@@ -251,8 +230,6 @@
                         if (amount > 0) {
                             const nut = nutritionData[foodKey];
                             const actualAmount = amount * ratio; 
-                            
-                            totalConsumedFoods[foodKey] += actualAmount;
                             
                             rowNutrients.kcal += actualAmount * nut.kcal;
                             rowNutrients.water += actualAmount * nut.water;
@@ -287,9 +264,10 @@
                     addNutrition("EASY", easy);
                     addNutrition("LEO", leo);
 
-                    const rowNum = row.querySelector(".row-num").innerText;
+                    // 회차 이름을 가져와서 표에 반영
+                    const rowName = row.querySelector(".row-name").value || "이름 없음";
                     const tr = document.createElement("tr");
-                    tr.innerHTML = '<td><strong>' + rowNum + '회차</strong></td>' +
+                    tr.innerHTML = '<td><strong>' + rowName + '</strong></td>' +
                                    '<td>' + rowNutrients.kcal.toFixed(2) + '</td>' +
                                    '<td>' + rowNutrients.water.toFixed(2) + '</td>' +
                                    '<td>' + rowNutrients.solid.toFixed(2) + '</td>' +
@@ -312,22 +290,6 @@
             document.getElementById("res-fat").innerText = total.fat.toFixed(2);
             document.getElementById("res-phos").innerText = total.phos.toFixed(2);
             document.getElementById("res-calc").innerText = total.calc.toFixed(2);
-
-            const consumedBody = document.getElementById("consumedFoodBody");
-            consumedBody.innerHTML = ""; 
-
-            if (!hasAnyInput) {
-                consumedBody.innerHTML = '<tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>';
-            } else {
-                for (const [foodName, amount] of Object.entries(totalConsumedFoods)) {
-                    if (amount > 0) {
-                        const tr = document.createElement("tr");
-                        const unit = nutritionData[foodName].unit;
-                        tr.innerHTML = '<td><strong>' + foodName + '</strong></td><td>' + amount.toFixed(2) + ' ' + unit + '</td>';
-                        consumedBody.appendChild(tr);
-                    }
-                }
-            }
         }
     </script>
 </body>
