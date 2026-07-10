@@ -51,8 +51,8 @@
         <input type="date" id="recordDate" class="date-input">
     </div>
     
-    <h3>1. 혼합 급여 기록</h3>
-    <div class="table-responsive">
+    <h3 id="mixHeading">혼합 급여 기록</h3>
+    <div class="table-responsive" id="mixTableContainer">
         <table id="feedTable">
             <thead>
                 <tr>
@@ -76,12 +76,12 @@
                 </tbody>
         </table>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" id="mixBtnGroup">
         <button class="btn-add" onclick="addRow()">+ 혼합 급여 추가</button>
     </div>
 
-    <h3>2. 단독 급여 기록 (A/a, P/a)</h3>
-    <div class="table-responsive">
+    <h3 id="singleHeading">단독 급여 기록 (A/a, P/a)</h3>
+    <div class="table-responsive" id="singleTableContainer">
         <table id="singleFeedTable">
             <thead>
                 <tr>
@@ -96,7 +96,7 @@
                 </tbody>
         </table>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" id="singleBtnGroup">
         <button class="btn-add" onclick="addSingleRow()" style="background-color: #ff9800;">+ 단독 급여 추가</button>
     </div>
 
@@ -266,8 +266,36 @@
                         span.style.padding = "5px";
                         dateInput.parentNode.replaceChild(span, dateInput);
                     }
+                    
+                    // 혼합 급여에 입력된 값이 있는지 확인하고 없으면 숨기기
+                    const mixInputs = clonedDoc.querySelectorAll("#feedBody input[type='number']");
+                    let hasMixData = false;
+                    mixInputs.forEach(input => {
+                        if (parseFloat(input.value) > 0) hasMixData = true;
+                    });
 
-                    // 모든 표 안의 입력칸들을 텍스트로 변환 (혼합, 단독 모두 적용)
+                    if (!hasMixData) {
+                        const mixHeading = clonedDoc.getElementById("mixHeading");
+                        const mixContainer = clonedDoc.getElementById("mixTableContainer");
+                        if (mixHeading) mixHeading.style.display = "none";
+                        if (mixContainer) mixContainer.style.display = "none";
+                    }
+
+                    // 단독 급여에 입력된 값이 있는지 확인하고 없으면 숨기기
+                    const singleInputs = clonedDoc.querySelectorAll("#singleFeedBody input[type='number']");
+                    let hasSingleData = false;
+                    singleInputs.forEach(input => {
+                        if (parseFloat(input.value) > 0) hasSingleData = true;
+                    });
+
+                    if (!hasSingleData) {
+                        const singleHeading = clonedDoc.getElementById("singleHeading");
+                        const singleContainer = clonedDoc.getElementById("singleTableContainer");
+                        if (singleHeading) singleHeading.style.display = "none";
+                        if (singleContainer) singleContainer.style.display = "none";
+                    }
+
+                    // 모든 표 안의 입력칸들을 텍스트로 변환
                     const inputs = clonedDoc.querySelectorAll("tbody input");
                     inputs.forEach(input => {
                         const span = clonedDoc.createElement("span");
