@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>고양이 다회차 급여 계산기</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; max-width: 800px; }
+        body { font-family: sans-serif; margin: 20px; max-width: 1200px; }
         h2 { margin-top: 30px; border-bottom: 2px solid #333; padding-bottom: 5px; }
         
-        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; white-space: nowrap; }
         th, td { border: 1px solid #ccc; padding: 10px 8px; text-align: center; vertical-align: middle; }
         th { background-color: #f4f4f4; font-weight: bold; }
         
-        input[type="number"] { width: 60px; padding: 6px; text-align: right; border: 1px solid #ccc; border-radius: 4px; }
+        input[type="number"] { width: 55px; padding: 6px; text-align: right; border: 1px solid #ccc; border-radius: 4px; }
         input[type="number"]:focus { outline: none; border-color: #ff9800; }
         
         .btn-group { margin-bottom: 20px; }
@@ -21,7 +21,6 @@
         .btn-calc { background-color: #2196F3; color: white; }
         .btn-clear { background-color: #9e9e9e; color: white; }
         
-        /* 첫 번째 열(행 번호와 삭제 버튼) UI 스타일링 */
         .row-num-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 10px; }
         .row-num { font-weight: bold; color: #555; width: 20px; }
         .delete-btn { 
@@ -30,26 +29,40 @@
             font-size: 16px; font-weight: bold; padding: 0; transition: background-color 0.2s;
         }
         .delete-btn:hover { background-color: #ffcdd2; }
+        
+        /* 가로로 긴 표를 위한 스크롤 영역 */
+        .table-responsive { overflow-x: auto; }
     </style>
 </head>
 <body>
 
     <h2>급여 기록</h2>
-    <table id="feedTable">
-        <thead>
-            <tr>
-                <th style="width: 80px;">Feed</th>
-                <th>TASTE(g)</th>
-                <th>CV(g)</th>
-                <th>P/a(pk)</th>
-                <th>A/a(pk)</th>
-                <th>LEFT(g)</th>
-            </tr>
-        </thead>
-        <tbody id="feedBody">
-            <!-- 자바스크립트를 통해 행이 추가되는 영역 -->
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table id="feedTable">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Feed</th>
+                    <th>TASTE(g)</th>
+                    <th>CV(g)</th>
+                    <th>P/a(pk)</th>
+                    <th>A/a(pk)</th>
+                    <th>WATER(g)</th>
+                    <th>RC15+(g)</th>
+                    <th>PUR(pk)</th>
+                    <th>H(pk)</th>
+                    <th>HYDRO(g)</th>
+                    <th>DIGE(g)</th>
+                    <th>PC(pk)</th>
+                    <th>PT(pk)</th>
+                    <th>EASY(pk)</th>
+                    <th>LEO(pk)</th>
+                    <th>LEFT(g)</th>
+                </tr>
+            </thead>
+            <tbody id="feedBody">
+                </tbody>
+        </table>
+    </div>
 
     <div class="btn-group">
         <button class="btn-add" onclick="addRow()">+ 행 추가</button>
@@ -57,12 +70,33 @@
         <button class="btn-clear" onclick="clearAll()">전체 지우기</button>
     </div>
 
-    <h2>영양소 Summary</h2>
+    <h2>회차별 영양소 Summary</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Feed</th>
+                    <th>Kcal</th>
+                    <th>Water(ml)</th>
+                    <th>Solid(g)</th>
+                    <th>Protein(g)</th>
+                    <th>Fat(g)</th>
+                    <th>Phos(mg)</th>
+                    <th>Calc(mg)</th>
+                </tr>
+            </thead>
+            <tbody id="perFeedBody">
+                <tr><td colspan="8" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>전체 영양소 Summary</h2>
     <table>
         <thead>
             <tr>
                 <th>Item</th>
-                <th>Value</th>
+                <th>Total Value</th>
             </tr>
         </thead>
         <tbody>
@@ -76,7 +110,7 @@
         </tbody>
     </table>
 
-    <h2>사료별 섭취 총량</h2>
+    <h2>사료별 총 섭취량</h2>
     <table>
         <thead>
             <tr>
@@ -90,12 +124,22 @@
     </table>
 
     <script>
-        // 변환 완료된 영양소 성분표 (g 단위와 pk 단위 분리)
+        // 변환 완료된 영양소 성분표 (조공 이지는 14g으로 임시 산정)
         const nutritionData = {
             "TASTE": { unit: "g", kcal: 0.861, water: 0.805, solid: 0.195, protein: 0.095, fat: 0.008, phos: 1.36, calc: 1.6 },
             "CV": { unit: "g", kcal: 0.15, water: 0.95, solid: 0.05, protein: 0.025, fat: 0.004, phos: 0.1, calc: 0.3 },
             "P/a": { unit: "pk", kcal: 5.0, water: 8.5, solid: 1.5, protein: 0.55, fat: 0.17, phos: 10.0, calc: 5.0 },
-            "A/a": { unit: "pk", kcal: 6.0, water: 8.5, solid: 1.5, protein: 0.87, fat: 0.31, phos: 20.0, calc: 5.0 }
+            "A/a": { unit: "pk", kcal: 6.0, water: 8.5, solid: 1.5, protein: 0.87, fat: 0.31, phos: 20.0, calc: 5.0 },
+            "WATER": { unit: "g", kcal: 0, water: 1.0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 },
+            "RC15+": { unit: "g", kcal: 4.216, water: 0.065, solid: 0.935, protein: 0.29, fat: 0.19, phos: 5.0, calc: 6.6 },
+            "PUR": { unit: "pk", kcal: 8.5, water: 12.8, solid: 1.2, protein: 1.26, fat: 0.0224, phos: 9.8, calc: 1.4 },
+            "H": { unit: "pk", kcal: 7.0, water: 10.8, solid: 1.2, protein: 0.6, fat: 0.24, phos: 6.0, calc: 8.4 },
+            "HYDRO": { unit: "g", kcal: 0.22, water: 0.97, solid: 0.03, protein: 0.02, fat: 0.001, phos: 0.1, calc: 0.001 },
+            "DIGE": { unit: "g", kcal: 1.24, water: 0.79, solid: 0.21, protein: 0.075, fat: 0.015, phos: 1.8, calc: 0 },
+            "PC": { unit: "pk", kcal: 7.7, water: 12.18, solid: 1.82, protein: 1.12, fat: 0.028, phos: 5.6, calc: 0.42 },
+            "PT": { unit: "pk", kcal: 7.14, water: 12.32, solid: 1.68, protein: 1.19, fat: 0.014, phos: 7.0, calc: 0.42 },
+            "EASY": { unit: "pk", kcal: 9.0, water: 12.46, solid: 1.54, protein: 0.98, fat: 0.014, phos: 9.8, calc: 1.4 }, // 14g assumed
+            "LEO": { unit: "pk", kcal: 12.48, water: 36.8, solid: 3.2, protein: 2.2, fat: 0.24, phos: 4.0, calc: 4.0 }
         };
 
         window.onload = function() {
@@ -117,6 +161,16 @@
                 <td><input type="number" class="cv" min="0" step="0.1"></td>
                 <td><input type="number" class="pa" min="0" step="0.1"></td>
                 <td><input type="number" class="aa" min="0" step="0.1"></td>
+                <td><input type="number" class="water" min="0" step="0.1"></td>
+                <td><input type="number" class="rc15" min="0" step="0.1"></td>
+                <td><input type="number" class="pur" min="0" step="0.1"></td>
+                <td><input type="number" class="h" min="0" step="0.1"></td>
+                <td><input type="number" class="hydro" min="0" step="0.1"></td>
+                <td><input type="number" class="dige" min="0" step="0.1"></td>
+                <td><input type="number" class="pc" min="0" step="0.1"></td>
+                <td><input type="number" class="pt" min="0" step="0.1"></td>
+                <td><input type="number" class="easy" min="0" step="0.1"></td>
+                <td><input type="number" class="leo" min="0" step="0.1"></td>
                 <td><input type="number" class="left" min="0" step="0.1"></td>
             `;
             tbody.appendChild(tr);
@@ -147,22 +201,41 @@
 
         function calculate() {
             let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
-            
-            // 각 사료별 최종 섭취량을 저장
-            let totalConsumedFoods = { "TASTE": 0, "CV": 0, "P/a": 0, "A/a": 0 };
+            let totalConsumedFoods = { 
+                "TASTE": 0, "CV": 0, "P/a": 0, "A/a": 0, "WATER": 0, 
+                "RC15+": 0, "PUR": 0, "H": 0, "HYDRO": 0, "DIGE": 0, 
+                "PC": 0, "PT": 0, "EASY": 0, "LEO": 0 
+            };
             
             const rows = document.querySelectorAll("#feedBody tr");
+            const perFeedBody = document.getElementById("perFeedBody");
+            perFeedBody.innerHTML = ""; 
+            
             let hasAnyInput = false;
 
-            rows.forEach(row => {
+            rows.forEach((row, index) => {
                 const taste = parseFloat(row.querySelector(".taste").value) || 0;
                 const cv = parseFloat(row.querySelector(".cv").value) || 0;
                 const pa = parseFloat(row.querySelector(".pa").value) || 0;
                 const aa = parseFloat(row.querySelector(".aa").value) || 0;
+                const water = parseFloat(row.querySelector(".water").value) || 0;
+                const rc15 = parseFloat(row.querySelector(".rc15").value) || 0;
+                const pur = parseFloat(row.querySelector(".pur").value) || 0;
+                const h = parseFloat(row.querySelector(".h").value) || 0;
+                const hydro = parseFloat(row.querySelector(".hydro").value) || 0;
+                const dige = parseFloat(row.querySelector(".dige").value) || 0;
+                const pc = parseFloat(row.querySelector(".pc").value) || 0;
+                const pt = parseFloat(row.querySelector(".pt").value) || 0;
+                const easy = parseFloat(row.querySelector(".easy").value) || 0;
+                const leo = parseFloat(row.querySelector(".leo").value) || 0;
                 const left = parseFloat(row.querySelector(".left").value) || 0;
 
-                // 총 급여량을 g(그램) 단위로 환산 (P/a와 A/a는 1포당 10g)
-                const totalGiven = taste + cv + (pa * 10) + (aa * 10);
+                // 패키지 단위(pk) 사료들의 무게를 g 단위로 변환해서 총합 계산
+                const totalGiven = taste + cv + water + rc15 + hydro + dige + 
+                                  (pa * 10) + (aa * 10) + (pur * 14) + (h * 12) + 
+                                  (pc * 14) + (pt * 14) + (easy * 14) + (leo * 40);
+                
+                let rowNutrients = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
 
                 if (totalGiven > 0) {
                     hasAnyInput = true;
@@ -181,6 +254,14 @@
                             
                             totalConsumedFoods[foodKey] += actualAmount;
                             
+                            rowNutrients.kcal += actualAmount * nut.kcal;
+                            rowNutrients.water += actualAmount * nut.water;
+                            rowNutrients.solid += actualAmount * nut.solid;
+                            rowNutrients.protein += actualAmount * nut.protein;
+                            rowNutrients.fat += actualAmount * nut.fat;
+                            rowNutrients.phos += actualAmount * nut.phos;
+                            rowNutrients.calc += actualAmount * nut.calc;
+
                             total.kcal += actualAmount * nut.kcal;
                             total.water += actualAmount * nut.water;
                             total.solid += actualAmount * nut.solid;
@@ -195,10 +276,35 @@
                     addNutrition("CV", cv);
                     addNutrition("P/a", pa);
                     addNutrition("A/a", aa);
+                    addNutrition("WATER", water);
+                    addNutrition("RC15+", rc15);
+                    addNutrition("PUR", pur);
+                    addNutrition("H", h);
+                    addNutrition("HYDRO", hydro);
+                    addNutrition("DIGE", dige);
+                    addNutrition("PC", pc);
+                    addNutrition("PT", pt);
+                    addNutrition("EASY", easy);
+                    addNutrition("LEO", leo);
+
+                    const rowNum = row.querySelector(".row-num").innerText;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = '<td><strong>' + rowNum + '회차</strong></td>' +
+                                   '<td>' + rowNutrients.kcal.toFixed(2) + '</td>' +
+                                   '<td>' + rowNutrients.water.toFixed(2) + '</td>' +
+                                   '<td>' + rowNutrients.solid.toFixed(2) + '</td>' +
+                                   '<td>' + rowNutrients.protein.toFixed(2) + '</td>' +
+                                   '<td>' + rowNutrients.fat.toFixed(2) + '</td>' +
+                                   '<td>' + rowNutrients.phos.toFixed(2) + '</td>' +
+                                   '<td>' + rowNutrients.calc.toFixed(2) + '</td>';
+                    perFeedBody.appendChild(tr);
                 }
             });
 
-            // Summary 테이블 반영
+            if (!hasAnyInput) {
+                perFeedBody.innerHTML = '<tr><td colspan="8" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>';
+            }
+
             document.getElementById("res-kcal").innerText = total.kcal.toFixed(2);
             document.getElementById("res-water").innerText = total.water.toFixed(2);
             document.getElementById("res-solid").innerText = total.solid.toFixed(2);
@@ -207,7 +313,6 @@
             document.getElementById("res-phos").innerText = total.phos.toFixed(2);
             document.getElementById("res-calc").innerText = total.calc.toFixed(2);
 
-            // 섭취한 사료 총량 테이블 단위 포함하여 업데이트
             const consumedBody = document.getElementById("consumedFoodBody");
             consumedBody.innerHTML = ""; 
 
