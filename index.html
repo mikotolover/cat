@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>고양이 다회차 급여 계산기</title>
-    <!-- 이미지 다운로드를 위한 html2canvas 라이브러리 추가 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: sans-serif; margin: 20px; max-width: 1200px; background-color: white; }
@@ -73,8 +72,7 @@
                 </tr>
             </thead>
             <tbody id="feedBody">
-                <!-- 자바스크립트를 통해 행이 추가되는 영역 -->
-            </tbody>
+                </tbody>
         </table>
     </div>
 
@@ -201,13 +199,55 @@
             calculate();
         }
 
-        // 이미지 다운로드 기능 추가
+        // 이미지 다운로드 기능 (깔끔한 캡처를 위해 수정됨)
         function downloadImage() {
             const dateStr = document.getElementById("recordDate").value || "급여기록";
             const fileName = dateStr + ".png";
             
-            // html2canvas를 사용하여 body 전체를 캡처
-            html2canvas(document.body, { scrollY: -window.scrollY }).then(canvas => {
+            html2canvas(document.body, { 
+                scrollY: -window.scrollY,
+                scale: 2, // 이미지를 2배 선명하게 캡처
+                onclone: function (clonedDoc) {
+                    // 1. 캡처할 때 보기 안 좋은 메인 버튼들 숨기기
+                    const btnGroup = clonedDoc.querySelector('.btn-group');
+                    if(btnGroup) btnGroup.style.display = 'none';
+
+                    // 2. 달력 입력칸(date)을 일반 텍스트로 예쁘게 변환
+                    const dateInput = clonedDoc.getElementById("recordDate");
+                    if (dateInput) {
+                        const span = clonedDoc.createElement("span");
+                        span.innerText = dateInput.value;
+                        span.style.fontSize = "18px";
+                        span.style.fontWeight = "bold";
+                        span.style.padding = "5px";
+                        dateInput.parentNode.replaceChild(span, dateInput);
+                    }
+
+                    // 3. 표 안의 모든 입력칸(이름, 숫자)을 일반 텍스트로 변환
+                    const inputs = clonedDoc.querySelectorAll("#feedBody input");
+                    inputs.forEach(input => {
+                        const span = clonedDoc.createElement("span");
+                        span.innerText = input.value;
+                        span.style.display = "inline-block";
+                        
+                        // 기존 칸과 똑같은 크기 및 정렬 유지
+                        if (input.type === "number") {
+                            span.style.width = "55px";
+                            span.style.textAlign = "right";
+                        } else {
+                            span.style.width = "60px";
+                            span.style.textAlign = "center";
+                            span.style.fontWeight = "bold";
+                        }
+                        
+                        input.parentNode.replaceChild(span, input);
+                    });
+
+                    // 4. 표 안의 X(삭제) 버튼 숨기기
+                    const deleteBtns = clonedDoc.querySelectorAll(".delete-btn");
+                    deleteBtns.forEach(btn => btn.style.display = "none");
+                }
+            }).then(canvas => {
                 const link = document.createElement("a");
                 link.download = fileName;
                 link.href = canvas.toDataURL("image/png");
