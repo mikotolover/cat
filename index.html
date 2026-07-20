@@ -62,13 +62,8 @@ font-size: 16px; font-weight: bold; padding: 0; transition: background-color 0.2
 <th>WATER(g)</th>
 <th>RC15+(g)</th>
 <th>PUR(pk)</th>
-<th>H(pk)</th>
 <th>HYDRO(g)</th>
 <th>DIGE(g)</th>
-<th>PC(pk)</th>
-<th>PT(pk)</th>
-<th>EASY(pk)</th>
-<th>LEO(pk)</th>
 <th>LEFT(g)</th>
 </tr>
 </thead>
@@ -151,6 +146,19 @@ font-size: 16px; font-weight: bold; padding: 0; transition: background-color 0.2
 </tbody>
 </table>
 
+<h2>사료별 총 섭취량</h2>
+<table>
+<thead>
+<tr>
+<th>Food Name</th>
+<th>Consumed Amount</th>
+</tr>
+</thead>
+<tbody id="consumedFoodBody">
+<tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>
+</tbody>
+</table>
+
 <script>
 const nutritionData = {
 "TASTE": { unit: "g", kcal: 0.861, water: 0.805, solid: 0.195, protein: 0.095, fat: 0.008, phos: 1.36, calc: 1.6 },
@@ -183,7 +191,7 @@ const day = String(today.getDate()).padStart(2, '0');
 document.getElementById("recordDate").value = `${year}-${month}-${day}`;
 };
 
-// 혼합 급여 행 추가
+// 혼합 급여 행 추가 (단독 급여 항목 제외됨)
 function addRow() {
 feedCount++;
 const tbody = document.getElementById("feedBody");
@@ -201,13 +209,8 @@ tr.innerHTML = `
 <td><input type="number" class="water" min="0" step="0.1"></td>
 <td><input type="number" class="rc15" min="0" step="0.1"></td>
 <td><input type="number" class="pur" min="0" step="0.1"></td>
-<td><input type="number" class="h" min="0" step="0.1"></td>
 <td><input type="number" class="hydro" min="0" step="0.1"></td>
 <td><input type="number" class="dige" min="0" step="0.1"></td>
-<td><input type="number" class="pc" min="0" step="0.1"></td>
-<td><input type="number" class="pt" min="0" step="0.1"></td>
-<td><input type="number" class="easy" min="0" step="0.1"></td>
-<td><input type="number" class="leo" min="0" step="0.1"></td>
 <td><input type="number" class="left" min="0" step="0.1"></td>
 `;
 tbody.appendChild(tr);
@@ -337,6 +340,11 @@ link.click();
 
 function calculate() {
 let total = { kcal: 0, water: 0, solid: 0, protein: 0, fat: 0, phos: 0, calc: 0 };
+let totalConsumedFoods = {
+"TASTE": 0, "CV": 0, "P/a": 0, "A/a": 0, "WATER": 0,
+"RC15+": 0, "PUR": 0, "H": 0, "HYDRO": 0, "DIGE": 0,
+"PC": 0, "PT": 0, "EASY": 0, "LEO": 0
+};
 
 const mixRows = document.querySelectorAll("#feedBody tr");
 const singleRows = document.querySelectorAll("#singleFeedBody tr");
@@ -352,18 +360,11 @@ const cv = parseFloat(row.querySelector(".cv").value) || 0;
 const water = parseFloat(row.querySelector(".water").value) || 0;
 const rc15 = parseFloat(row.querySelector(".rc15").value) || 0;
 const pur = parseFloat(row.querySelector(".pur").value) || 0;
-const h = parseFloat(row.querySelector(".h").value) || 0;
 const hydro = parseFloat(row.querySelector(".hydro").value) || 0;
 const dige = parseFloat(row.querySelector(".dige").value) || 0;
-const pc = parseFloat(row.querySelector(".pc").value) || 0;
-const pt = parseFloat(row.querySelector(".pt").value) || 0;
-const easy = parseFloat(row.querySelector(".easy").value) || 0;
-const leo = parseFloat(row.querySelector(".leo").value) || 0;
 const left = parseFloat(row.querySelector(".left").value) || 0;
 
-const totalGiven = taste + cv + water + rc15 + hydro + dige +
-(pur * 14) + (h * 12) + (pc * 14) + (pt * 14) +
-(easy * 14) + (leo * 40);
+const totalGiven = taste + cv + water + rc15 + hydro + dige + (pur * 14);
 
 if (totalGiven > 0) {
 hasAnyInput = true;
@@ -374,6 +375,8 @@ const addNutrition = (foodKey, amount) => {
 if (amount > 0) {
 const nut = nutritionData[foodKey];
 const actualAmount = amount * ratio;
+
+totalConsumedFoods[foodKey] += actualAmount;
 
 rowNutrients.kcal += actualAmount * nut.kcal;
 rowNutrients.water += actualAmount * nut.water;
@@ -398,13 +401,8 @@ addNutrition("CV", cv);
 addNutrition("WATER", water);
 addNutrition("RC15+", rc15);
 addNutrition("PUR", pur);
-addNutrition("H", h);
 addNutrition("HYDRO", hydro);
 addNutrition("DIGE", dige);
-addNutrition("PC", pc);
-addNutrition("PT", pt);
-addNutrition("EASY", easy);
-addNutrition("LEO", leo);
 
 appendSummaryRow(perFeedBody, row.querySelector(".row-name").value, rowNutrients);
 }
@@ -434,6 +432,8 @@ const addNutrition = (foodKey, amount) => {
 if (amount > 0) {
 const nut = nutritionData[foodKey];
 const actualAmount = amount * ratio;
+
+totalConsumedFoods[foodKey] += actualAmount;
 
 rowNutrients.kcal += actualAmount * nut.kcal;
 rowNutrients.water += actualAmount * nut.water;
@@ -477,6 +477,23 @@ document.getElementById("res-protein").innerText = total.protein.toFixed(2);
 document.getElementById("res-fat").innerText = total.fat.toFixed(2);
 document.getElementById("res-phos").innerText = total.phos.toFixed(2);
 document.getElementById("res-calc").innerText = total.calc.toFixed(2);
+
+// 사료별 총 섭취량 표시 로직
+const consumedBody = document.getElementById("consumedFoodBody");
+consumedBody.innerHTML = "";
+
+if (!hasAnyInput) {
+consumedBody.innerHTML = '<tr><td colspan="2" style="color: #888;">계산 버튼을 누르면 내역이 표시됩니다.</td></tr>';
+} else {
+for (const [foodName, amount] of Object.entries(totalConsumedFoods)) {
+if (amount > 0) {
+const tr = document.createElement("tr");
+const unit = nutritionData[foodName].unit;
+tr.innerHTML = '<td><strong>' + foodName + '</strong></td><td>' + amount.toFixed(2) + ' ' + unit + '</td>';
+consumedBody.appendChild(tr);
+}
+}
+}
 }
 
 // Summary 표에 행을 추가하는 공통 함수
